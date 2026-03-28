@@ -1,122 +1,99 @@
-from aoc.utilities.register import puzzles
+import argparse, sys
 from datetime import date
-import aoc.solutions, argparse, os, platform
 
+from aoc import puzzles
+from aoc.config import config
+from aoc.puzzles.solve import *
 
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-y", "--year", metavar="", type=int, help="specify the year to select")
+    parser.add_argument("-y", "--year", metavar="", type=str, help="specify the year to select")
     parser.add_argument("-d", "--day", metavar="", type=str, help="specify the day to select")
     parser.add_argument("-p", "--part", metavar="", type=str, help="specify the part to select")
     parser.add_argument("-l", "--latest", help="execute latest solution", action="store_true")
     args = parser.parse_args()
 
-    # Get latest puzzle if "-l"
+
     if args.latest:
-        latest_year = next(reversed(puzzles))
-        latest_day = next(reversed(puzzles[latest_year]))
-        latest_part = next(reversed(puzzles[latest_year][latest_day]))
-        selected_puzzle = puzzles[latest_year][latest_day].get(latest_part)
+        year, day, part = get_latest()
+        display_header(year, day, part)
+        check, solution, error = solve(year, day, part)
 
     else:
         # Get year
-        selected_year = args.year
-        valid_year_from = 2015
+        year = args.year
+        valid_year_from = config.get("aoc", "start_year")
         valid_year_to = date.today().year - 1 if date.today().month < 12 else date.today().year
         
         while True:
-            if selected_year != None:
-                try:
-                    selected_year = int(selected_year)
+            try:
+                year = int(year)
+                if year < valid_year_from or year > valid_year_to:
+                    raise ValueError
 
-                    if selected_year < valid_year_from or selected_year > valid_year_to:
-                        raise ValueError
-
-                except:
-                    print("\033[F\033[K", end='')
-                    print(f"Year must be a number in range {valid_year_from}-{valid_year_to}")
-
-                else:
-                    if selected_year in puzzles:
-                        break
-
-                    print("\033[F\033[K", end='')
-                    print(f"Year \"{selected_year}\" does not exist in puzzle solutions")
-
-            selected_year = input("Select a year: ")
+            except:
+                year = input(f"Select a valid year ({valid_year_from}-{valid_year_to}): ")
+                print("\033[F\033[K", end='')
+            
+            else:
+                break
 
         # Get day
-        selected_day = args.day
+        day = args.day
         valid_day_from = 1
-        valid_day_to = 25
-
-        while True:
-            if selected_day != None:
-                try:
-                    selected_day = int(selected_day)
-
-                    if selected_day < valid_day_from or selected_day > valid_day_to:
-                        raise ValueError
-
-                except:
-                    print("\033[F\033[K", end='')
-                    print(f"Day must be a number in range {valid_day_from}-{valid_day_to}")
-
-                else:
-                    if selected_day in puzzles[selected_year]:
-                        break
-
-                    print("\033[F\033[K", end='')
-                    print(f"Day \"{selected_day}\" in year \"{selected_year}\" does not exist in puzzle solutions")
+        valid_day_to = config.get("aoc", "end_day")
         
-            selected_day = input("Select a day: ")
-
-        # Get part 
-        selected_part = args.part
-        valid_part_from = 0
-        valid_part_to = 2
-
         while True:
-            if selected_part != None:
-                try:
-                    selected_part = int(selected_part)
+            try:
+                day = int(day)
+                if day < valid_day_from or day > valid_day_to:
+                    raise ValueError
 
-                    if selected_part < valid_part_from or selected_part > valid_part_to:
-                        raise ValueError
+            except:
+                day = input(f"Select a valid day ({valid_day_from}-{valid_day_to}): ")
+                print("\033[F\033[K", end='')
+            
+            else:
+                break
 
-                except:
-                    print("\033[F\033[K", end='')
-                    print(f"Part must be a number in range {valid_part_from}-{valid_part_to}")
-
-                else:
-                    if selected_part in puzzles[selected_year][selected_day]:
-                        break
-
-                    print("\033[F\033[K", end='')
-                    print(f"Part \"{selected_part}\" at day \"{selected_day}\" in year \"{selected_year}\" does not exist in puzzle solutions")
-
-            selected_part = input("Select part: ")
+        # Get part
+        part = args.part
+        valid_part_from =  config.get("aoc", "start_part")
+        valid_part_to =  config.get("aoc", "end_part")
         
-        selected_puzzle = puzzles[selected_year][selected_day].get(selected_part)
+        while True:
+            try:
+                part = int(part)
+                if part < valid_part_from or part > valid_part_to:
+                    raise ValueError
+
+            except:
+                part = input(f"Select a valid part ({valid_part_from}-{valid_part_to}): ")
+                print("\033[F\033[K", end='')
+            
+            else:
+                break
+        
+        display_header(year, day, part)
+        check, solution, error = solve(year, day, part)
     
-    os.system('cls' if platform.system() == 'Windows' else 'clear')
-    print(f"{'#'*70}\n#{f'Holmgrens Advent of Code'.center(68, ' ')}#\n#{f''.center(68, ' ')}#\n#{f'Solving puzzle part {selected_part} at {selected_day:02}/12/{selected_year}'.center(68, ' ')}#\n{'#'*70}")
-    selected_puzzle()
+    if not check:
+        display_error(error)
+        sys.exit(1)
+
+    display_solution(year, day, part, solution)
 
 
-    # insert into loop
-    """
-    user_input = input("Enter command: ").strip().lower()
-    func = puzzles.get(user_input)
-    if func:
-        func()  # runs the registered function
-    else:
-        # Could not find day
-        # or
-        # not a real day
-        # q exits the program (directly?)
-        print(f"Unknown command: {user_input}")
-    """
+
+def display_header(year, day, part):
+    print(f"{'#'*70}\n#{f'Holmgrens Advent of Code'.center(68, ' ')}#\n#{f''.center(68, ' ')}#\n#{f'Solving puzzle part {part} at {day:02}/12/{year}'.center(68, ' ')}#\n{'#'*70}")
+
+def display_solution(year, day, part, solution):
+    print(f"\n{f'Solution for puzzle part {part} at {day:02}/12/{year}:'.center(70, ' ')}\n\n{f'{'-'*50}'.center(70, ' ')}\n\n{f'{solution}'}\n\n{'#'*70}")
+
+def display_error(error):
+    print(f"\n{f'Something went wrong trying to solve the puzzle:'.center(70, ' ')}\n\n{f'{'-'*50}'.center(70, ' ')}\n\n{f'{error}'}\n\n{'#'*70}")
+
 if __name__ == "__main__":
     main()
