@@ -12,7 +12,7 @@ def part1(input_data):
 
 
 @register(2015, 9, 2)
-def part1(input_data):
+def part2(input_data):
     return calculate(input_data, False)
 
 
