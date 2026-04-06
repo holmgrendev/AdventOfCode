@@ -1,5 +1,3 @@
-import time
-
 from aoc.puzzles import register
 
 container_amount = {}
